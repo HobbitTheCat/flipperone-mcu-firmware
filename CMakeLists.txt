@@ -10,6 +10,8 @@ set(FIRMWARE_TARGET 100 CACHE STRING "Firmware target number")
 set(FIRMWARE_ORIGIN "Official" CACHE STRING "Firmware origin")
 set(TARGET_HARDWARE "f${FIRMWARE_TARGET}")
 
+option(ENABLE_USB_DISPLAY_EMULATION "Build with USB display emulation instead of hardware" OFF)
+
 # Initialise pico_sdk from installed location
 # (note this can come from environment, CMake cache etc)
 
@@ -53,7 +55,7 @@ add_compile_options(-Wno-unknown-pragmas)
 
 # Add executable. Default name is the project name, version 0.1
 file(GLOB_RECURSE SOURCES
-    "lib/furi/*.c*" 
+    "lib/furi/*.c*"
     "lib/furi/core/*.c*"
     "lib/toolbox/*.c*"
     "app/*.c"
@@ -61,7 +63,7 @@ file(GLOB_RECURSE SOURCES
     "app/fs/*.c"
     "targets/${TARGET_HARDWARE}/furi_hal/*.c*"
     "targets/${TARGET_HARDWARE}/furi_bsp/*.c*"
-    "lib/drivers/display/*.c*"  
+    #"lib/drivers/display/*.c*"
     "lib/drivers/tps62868x/*.c*"
     "lib/drivers/tca6416a/*.c*"
     "lib/drivers/pcal6416/*.c*"
@@ -81,14 +83,25 @@ file(GLOB_RECURSE SOURCES
     "applications/*.c"
     "applications/services/*.c"
     "applications/main/*.c"
-    "targets/${TARGET_HARDWARE}/src/*.c*" 
+    "targets/${TARGET_HARDWARE}/src/*.c*"
 )
 
-add_executable(${PROJECT_NAME} 
+if(ENABLE_USB_DISPLAY_EMULATION)
+    message(STATUS "Configuring build with USB Display Emulation")
+    set(DISPLAY_SOURCES "lib/drivers/display/display_jd9853_usb_virtual.c")
+    add_compile_definitions(EN_USB_DISPLAY_EMU=1)
+else()
+    set(DISPLAY_SOURCES
+        "lib/drivers/display/display_jd9853_qspi.c"
+        "lib/drivers/display/display_jd9853_irq_qspi.c")
+endif()
+
+add_executable(${PROJECT_NAME}
     ${SOURCES}
+    ${DISPLAY_SOURCES}
 )
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE 
+target_compile_definitions(${PROJECT_NAME} PRIVATE
     PICO_DEFAULT_UART_TX_PIN=0
     PICO_DEFAULT_UART_RX_PIN=1
     PICO_DEFAULT_UART_BAUD_RATE=230400
@@ -96,8 +109,8 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     USE_PRINTF
     USE_DBG_PRINTF
     PICO_USE_MALLOC_MUTEX=0
-    # https://www.raspberrypi.com/documentation/pico-sdk/high_level.html 
-    # Set PICO_FLASH_ASSUME_CORE1_SAFE=1 to explicitly say that core 1 is never using flash. 
+    # https://www.raspberrypi.com/documentation/pico-sdk/high_level.html
+    # Set PICO_FLASH_ASSUME_CORE1_SAFE=1 to explicitly say that core 1 is never using flash.
     # TODO: When enabling multi-core, this needs to be disabled and the correct flash access mechanism implemented
     PICO_FLASH_ASSUME_CORE1_SAFE=1
     #PICO_USE_SW_SPIN_LOCKS=0
