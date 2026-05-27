@@ -13,6 +13,10 @@
 #include <furi_hal_clock.h>
 #include "cli_command_gpio.h"
 
+#ifdef EN_USB_DISPLAY_EMU
+    #include "cli_command_screen.h"
+#endif
+    
 static void cli_command_help(Cli* cli, FuriString* args, void* context) {
     UNUSED(args);
     UNUSED(context);
@@ -489,4 +493,8 @@ void cli_commands_init(Cli* cli) {
     if(!furi_hal_otp_usb_white_label_valid()) {
         cli_add_command(cli, "otp", CliCommandFlagParallelSafe, cli_command_otp, NULL);
     }
+
+    #ifdef EN_USB_DISPLAY_EMU
+        cli_add_command(cli, "screen", CliCommandFlagParallelSafe, cli_command_screen, NULL);
+    #endif
 }
